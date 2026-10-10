@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -90,6 +91,41 @@ app.patch('/contacts/:id/replyed', async (req, res) => {
     const updated = await Contact.findByIdAndUpdate(id, { isReplyed: true }, { returnDocument: 'after' });
     if (!updated) return res.status(404).json({ message: 'Contact not found' });
     res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete contact
+app.delete('/contacts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(404).json({ message: 'Contact not found' });
+    }
+    const deleted = await Contact.findByIdAndDelete(id);
+    if (!deleted) return res.status(404).json({ message: 'Contact not found' });
+    res.status(200).json({ message: 'Contact deleted successfully', contact: deleted });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete subscriber
+app.delete('/subscribers/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let deleted = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      deleted = await Subscriber.findByIdAndDelete(id);
+    }
+    if (!deleted) {
+      deleted = await Subscriber.findOneAndDelete({ email: id.toLowerCase().trim() });
+    }
+    if (!deleted) return res.status(404).json({ message: 'Subscriber not found' });
+    res.status(200).json({ message: 'Subscriber deleted successfully', subscriber: deleted });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

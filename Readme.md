@@ -16,7 +16,9 @@ This guide provides frontend developers with complete route specifications, auth
    - [3. Get Read Contacts](#3-get-read-contacts)
    - [4. Mark Contact as Read](#4-mark-contact-as-read)
    - [5. Mark Contact as Replied](#5-mark-contact-as-replied)
-   - [6. Get All Subscribers](#6-get-all-subscribers)
+   - [6. Delete Contact](#6-delete-contact)
+   - [7. Get All Subscribers](#7-get-all-subscribers)
+   - [8. Delete Subscriber](#8-delete-subscriber)
 5. [TypeScript Interfaces & Data Models](#typescript-interfaces--data-models)
 6. [Frontend Integration Example (Axios / Fetch)](#frontend-integration-example)
 7. [Error Handling & HTTP Status Codes](#error-handling--http-status-codes)
@@ -57,7 +59,9 @@ You can supply the token using either standard `Authorization` or `x-auth-token`
 | `GET` | `/contacts/read` | None | Fetch only read contact inquiries (`isRead === true`) |
 | `PATCH` | `/contacts/:id/read` | None | Mark a contact inquiry as read (`isRead: true`) |
 | `PATCH` | `/contacts/:id/replyed` | None | Mark a contact inquiry as replied (`isReplyed: true`) |
+| `DELETE` | `/contacts/:id` | None | Delete a contact inquiry by ID |
 | `GET` | `/subscribers` | None | Fetch all newsletter subscribers |
+| `DELETE` | `/subscribers/:id` | None | Delete a subscriber by ID or email |
 
 ---
 
@@ -232,7 +236,50 @@ Returns the updated contact object:
 
 ---
 
-### 6. Get All Subscribers
+### 6. Delete Contact
+Deletes a specific contact inquiry by its unique identifier.
+
+- **Method:** `DELETE`
+- **Route:** `/contacts/:id`
+- **Headers:**
+  - `Authorization: Bearer <AUTH_TOKEN>`
+- **URL Parameters:**
+  - `id` *(string, required)*: The 24-character MongoDB `_id` of the contact.
+- **Request Body:** None
+
+#### Response: `200 OK`
+```json
+{
+  "message": "Contact deleted successfully",
+  "contact": {
+    "_id": "67066914a1c6a2b34e8f1122",
+    "fullName": "Jane Doe",
+    "email": "jane@example.com",
+    "phone": "+1234567890",
+    "plan": "Enterprise",
+    "projectType": "Web Development",
+    "message": "Looking forward to working together.",
+    "isRead": true,
+    "isReplyed": true,
+    "createdAt": "2026-10-09T09:15:00.000Z",
+    "updatedAt": "2026-10-09T09:25:00.000Z"
+  }
+}
+```
+
+#### Error Responses
+- `404 Not Found`:
+  ```json
+  { "message": "Contact not found" }
+  ```
+- `500 Internal Server Error`:
+  ```json
+  { "message": "Server error" }
+  ```
+
+---
+
+### 7. Get All Subscribers
 Fetches the list of all registered email subscribers.
 
 - **Method:** `GET`
@@ -255,6 +302,44 @@ Fetches the list of all registered email subscribers.
   }
 ]
 ```
+
+---
+
+### 8. Delete Subscriber
+Deletes a subscriber by their MongoDB `_id` or email address.
+
+- **Method:** `DELETE`
+- **Route:** `/subscribers/:id`
+- **Headers:**
+  - `Authorization: Bearer <AUTH_TOKEN>`
+- **URL Parameters:**
+  - `id` *(string, required)*: MongoDB ObjectId or email address of the subscriber.
+- **Request Body:** None
+
+#### Response: `200 OK`
+```json
+{
+  "message": "Subscriber deleted successfully",
+  "subscriber": {
+    "_id": "670671a9a1c6a2b34e8f3344",
+    "email": "subscriber@example.com",
+    "subscribedAt": "2026-10-09T09:30:00.000Z",
+    "isActive": true,
+    "createdAt": "2026-10-09T09:30:00.000Z",
+    "updatedAt": "2026-10-09T09:30:00.000Z"
+  }
+}
+```
+
+#### Error Responses
+- `404 Not Found`:
+  ```json
+  { "message": "Subscriber not found" }
+  ```
+- `500 Internal Server Error`:
+  ```json
+  { "message": "Server error" }
+  ```
 
 ---
 
@@ -289,6 +374,16 @@ export interface Subscriber {
 export interface ApiErrorResponse {
   message: string;
 }
+
+export interface DeleteContactResponse {
+  message: string;
+  contact: Contact;
+}
+
+export interface DeleteSubscriberResponse {
+  message: string;
+  subscriber: Subscriber;
+}
 ```
 
 ---
@@ -301,7 +396,7 @@ Here is a recommended API client setup using `axios` or native `fetch` that you 
 
 ```typescript
 import axios from 'axios';
-import { Contact, Subscriber } from '../types/api';
+import { Contact, Subscriber, DeleteContactResponse, DeleteSubscriberResponse } from '../types/api';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
 const AUTH_TOKEN = process.env.NEXT_PUBLIC_AUTH_TOKEN || '';
@@ -341,9 +436,19 @@ export const inboxApi = {
     return data;
   },
 
+  deleteContact: async (id: string): Promise<DeleteContactResponse> => {
+    const { data } = await apiClient.delete<DeleteContactResponse>(`/contacts/${id}`);
+    return data;
+  },
+
   // Subscribers
   getAllSubscribers: async (): Promise<Subscriber[]> => {
     const { data } = await apiClient.get<Subscriber[]>('/subscribers');
+    return data;
+  },
+
+  deleteSubscriber: async (idOrEmail: string): Promise<DeleteSubscriberResponse> => {
+    const { data } = await apiClient.delete<DeleteSubscriberResponse>(`/subscribers/${idOrEmail}`);
     return data;
   }
 };
@@ -352,7 +457,7 @@ export const inboxApi = {
 ### Option B: Using Native Fetch
 
 ```typescript
-import { Contact, Subscriber } from '../types/api';
+import { Contact, Subscriber, DeleteContactResponse, DeleteSubscriberResponse } from '../types/api';
 
 const BASE_URL = 'http://localhost:3000';
 const AUTH_TOKEN = 'your-secret-token';
@@ -381,7 +486,9 @@ export const inboxApi = {
   getReadContacts: () => request<Contact[]>('/contacts/read'),
   markContactAsRead: (id: string) => request<Contact>(`/contacts/${id}/read`, { method: 'PATCH' }),
   markContactAsReplied: (id: string) => request<Contact>(`/contacts/${id}/replyed`, { method: 'PATCH' }),
+  deleteContact: (id: string) => request<DeleteContactResponse>(`/contacts/${id}`, { method: 'DELETE' }),
   getAllSubscribers: () => request<Subscriber[]>('/subscribers'),
+  deleteSubscriber: (idOrEmail: string) => request<DeleteSubscriberResponse>(`/subscribers/${idOrEmail}`, { method: 'DELETE' }),
 };
 ```
 

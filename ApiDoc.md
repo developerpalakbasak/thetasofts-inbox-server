@@ -51,7 +51,9 @@ All endpoints are protected by authentication middleware. Every request must inc
 | `GET` | `/contacts/read` | None | Get all read contact inquiries (`isRead: true`) |
 | `PATCH` | `/contacts/:id/read` | None | Mark a contact inquiry as read |
 | `PATCH` | `/contacts/:id/replyed` | None | Mark a contact inquiry as replied |
+| `DELETE` | `/contacts/:id` | None | Delete a contact inquiry by ID |
 | `GET` | `/subscribers` | None | Get all newsletter subscribers |
+| `DELETE` | `/subscribers/:id` | None | Delete a subscriber by ID or email |
 
 ---
 
@@ -262,9 +264,60 @@ Sets `isReplyed: true` for the specified contact.
 
 ---
 
+### 6. Delete Contact
+
+Delete a contact form inquiry by its MongoDB `_id`.
+
+- **Route:** `/contacts/:id`
+- **Request Type:** `DELETE`
+- **URL Parameters:**
+  - `id` *(string, required)*: MongoDB ObjectId of the contact (e.g. `67066914a1c6a2b34e8f1122`)
+- **Headers:**
+  - `Authorization: Bearer <AUTH_TOKEN>`
+- **Payload / Body:** None
+
+#### Response
+
+- **Status:** `200 OK`
+- **Body:**
+  ```json
+  {
+    "message": "Contact deleted successfully",
+    "contact": {
+      "_id": "67066914a1c6a2b34e8f1122",
+      "fullName": "Jane Doe",
+      "email": "jane@example.com",
+      "phone": "+1234567890",
+      "plan": "Enterprise",
+      "projectType": "Web Development",
+      "message": "Looking forward to working together.",
+      "isRead": true,
+      "isReplyed": true,
+      "createdAt": "2026-10-09T09:15:00.000Z",
+      "updatedAt": "2026-10-09T09:25:00.000Z"
+    }
+  }
+  ```
+
+- **Error Responses:**
+  - `404 Not Found`:
+    ```json
+    {
+      "message": "Contact not found"
+    }
+    ```
+  - `500 Internal Server Error`:
+    ```json
+    {
+      "message": "Server error"
+    }
+    ```
+
+---
+
 ## Subscriber Endpoints
 
-### 6. Get All Subscribers
+### 7. Get All Subscribers
 
 Retrieve a list of all newsletter / email subscribers.
 
@@ -297,6 +350,52 @@ Retrieve a list of all newsletter / email subscribers.
     "message": "Server error"
   }
   ```
+
+---
+
+### 8. Delete Subscriber
+
+Delete a newsletter subscriber by their MongoDB `_id` or email address.
+
+- **Route:** `/subscribers/:id`
+- **Request Type:** `DELETE`
+- **URL Parameters:**
+  - `id` *(string, required)*: MongoDB ObjectId (e.g. `670671a9a1c6a2b34e8f3344`) or subscriber email address (e.g. `subscriber@example.com`)
+- **Headers:**
+  - `Authorization: Bearer <AUTH_TOKEN>`
+- **Payload / Body:** None
+
+#### Response
+
+- **Status:** `200 OK`
+- **Body:**
+  ```json
+  {
+    "message": "Subscriber deleted successfully",
+    "subscriber": {
+      "_id": "670671a9a1c6a2b34e8f3344",
+      "email": "subscriber@example.com",
+      "subscribedAt": "2026-10-09T09:30:00.000Z",
+      "isActive": true,
+      "createdAt": "2026-10-09T09:30:00.000Z",
+      "updatedAt": "2026-10-09T09:30:00.000Z"
+    }
+  }
+  ```
+
+- **Error Responses:**
+  - `404 Not Found`:
+    ```json
+    {
+      "message": "Subscriber not found"
+    }
+    ```
+  - `500 Internal Server Error`:
+    ```json
+    {
+      "message": "Server error"
+    }
+    ```
 
 ---
 
